@@ -9,54 +9,114 @@ import {
   runAutoCommit,
 } from "./src/commands/git";
 
-const cli = new Command();
+function createCli() {
+  const cli = new Command();
 
-cli
-  .name("gfts")
-  .description(
-    "AI assistant for git and file system operations using Google GenAI + MCP TS SDK"
-  )
-  .option("-m, --message <msg>", "Specific commit message")
-  .option("--dry-run", "Simulate actions without making changes", false)
-  .option("--setup", "Configure API key and settings")
-  .argument("[instruction]", "Natural language instruction for the git agent")
-  .action(async (instruction: string | undefined, options) => {
-    try {
-      if (options.setup) {
+  cli
+    .name("gfts")
+    .description(
+      chalk.bold("Git Flash TypeScript SDK - AI-powered Git Assistant\n\n") +
+        chalk.dim(
+          "An intuitive CLI tool that helps you manage git operations using natural language and AI assistance.\n\n"
+        ) +
+        chalk.cyan("Examples:\n") +
+        '  $ gfts "commit all my recent changes with a good message"\n' +
+        '  $ gfts commit -m "feat: add new authentication system"\n' +
+        "  $ gfts auto-commit\n"
+    )
+    .version("1.0.0", "-v, --version", "Output the current version")
+    .option("--dry-run", "Simulate actions without making changes", false)
+    .addHelpText(
+      "after",
+      `
+${chalk.cyan("Documentation:")}
+  Run ${chalk.bold(
+    "gfts <command> --help"
+  )} for detailed information about a command.
+  Visit ${chalk.underline(
+    "https://github.com/alvin-dennis/gfts"
+  )} for full documentation.
+    `
+    );
+
+  cli
+    .command("config")
+    .description("Configure GFTS settings")
+    .option("--show", "Show current configuration")
+    .option("--reset", "Reset configuration to defaults")
+    .action(async (options) => {
+      if (options.show) {
+        // Show config logic here
+      } else if (options.reset) {
+        // Reset config logic here
+      } else {
         await setupApiKey();
+      }
+    });
+
+  const commit = cli
+    .command("commit")
+    .description("Create a new commit")
+    .option("-m, --message <msg>", "Specific commit message")
+    .option("-a, --all", "Stage all changes before committing")
+    .option("--no-push", "Skip pushing to remote")
+    .addHelpText(
+      "after",
+      `
+${chalk.cyan("Examples:")}
+  $ gfts commit -m "feat: add user authentication"
+  $ gfts commit -am "fix: resolve login bug"
+  $ gfts commit --no-push -m "chore: update dependencies"
+    `
+    )
+    .action(async (options) => {
+      await runManualCommit(options.message, cli.opts().dryRun, !options.push);
+    });
+
+  // Auto-commit Command
+  cli
+    .command("auto-commit")
+    .alias("ac")
+    .description("Automatically generate commit message and create commit")
+    .option("--no-push", "Skip pushing to remote")
+    .addHelpText(
+      "after",
+      `
+${chalk.cyan("Examples:")}
+  $ gfts auto-commit
+  $ gfts ac --no-push
+    `
+    )
+    .action(async (options) => {
+      await runAutoCommit(cli.opts().dryRun, !options.push);
+    });
+
+  // AI Assistant Command (default)
+  cli
+    .command("assist [instruction]", { isDefault: true })
+    .description("Get AI assistance for git operations")
+    .addHelpText(
+      "after",
+      `
+${chalk.cyan("Examples:")}
+  $ gfts "stage and commit all my recent changes"
+  $ gfts "create a new branch and commit my changes"
+  $ gfts "push my changes to origin"
+    `
+    )
+    .action(async (instruction) => {
+      if (!instruction) {
+        console.log(
+          chalk.yellow("Please provide an instruction for the AI assistant")
+        );
+        cli.help();
         return;
       }
+      await runGenerativeGitFlow(instruction, cli.opts().dryRun);
+    });
 
-      if (instruction) {
-        await runGenerativeGitFlow(instruction, options.dryRun);
-      } else if (options.message) {
-        await runManualCommit(options.message, options.dryRun);
-      } else {
-        await runAutoCommit(options.dryRun);
-      }
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes("API key not found")
-      ) {
-        console.log(chalk.yellow("No API key found. Running setup..."));
-        await setupApiKey();
-        if (instruction) {
-          await runGenerativeGitFlow(instruction, options.dryRun);
-        } else if (options.message) {
-          await runManualCommit(options.message, options.dryRun);
-        } else {
-          await runAutoCommit(options.dryRun);
-        }
-      } else {
-        console.error(
-          chalk.red(
-            `Error: ${error instanceof Error ? error.message : "Unknown error"}`
-          )
-        );
-        process.exit(1);
-      }
-    }
-  });
+  return cli;
+}
 
+const cli = createCli();
 cli.parse(process.argv);
