@@ -3,15 +3,12 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import { setupApiKey } from "./src/config/api";
-import {
-  runGenerativeGitFlow,
-  runManualCommit,
-  runAutoCommit,
-} from "./src/commands/git";
+import { runGenerativeGitFlow } from "./src/commands/ai";
+import { runManualCommit, runAutoCommit } from "./src/commands/commit";
 
 function createCli() {
   const cli = new Command();
-  
+
   cli
     .name("gfts")
     .description(
@@ -24,6 +21,7 @@ function createCli() {
         '  $ gfts commit -m "feat: add new authentication system"\n' +
         "  $ gfts auto-commit\n"
     )
+    .usage("")
     .version("1.0.0", "-v, --version", "Output the current version")
     .option("--dry-run", "Simulate actions without making changes", false)
     .addHelpText(
