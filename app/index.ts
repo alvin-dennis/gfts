@@ -46,15 +46,13 @@ ${chalk.cyan("Documentation:")}
     .option("--reset", "Reset configuration to defaults")
     .action(async (options) => {
       if (options.show) {
-        // Show config logic here
       } else if (options.reset) {
-        // Reset config logic here
       } else {
         await setupApiKey();
       }
     });
 
-  const commit = cli
+  cli
     .command("commit")
     .description("Create a new commit")
     .option("-m, --message <msg>", "Specific commit message")
@@ -76,13 +74,17 @@ ${chalk.cyan("Examples:")}
         console.log(chalk.yellow("\nUse one of the following:"));
         console.log(chalk.cyan('  gfts commit -m "your commit message"'));
         console.log(chalk.cyan("  gfts auto-commit"));
-        console.log(chalk.yellow("\nNote: Make sure to wrap multi-word messages in quotes"));
+        console.log(
+          chalk.yellow(
+            "\nNote: Make sure to wrap multi-word messages in quotes"
+          )
+        );
         process.exit(1);
       }
       await runManualCommit(options.message, cli.opts().dryRun, !options.push);
     });
 
-  // Auto-commit Command
+
   cli
     .command("auto-commit")
     .alias("ac")
@@ -100,7 +102,7 @@ ${chalk.cyan("Examples:")}
       await runAutoCommit(cli.opts().dryRun, !options.push);
     });
 
-  // AI Assistant Command (default)
+
   cli
     .command("assist [instruction]", { isDefault: true })
     .description("Get AI assistance for git operations")
