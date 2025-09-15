@@ -28,6 +28,10 @@ export async function runManualCommit(
   dryRun = false,
   skipPush = false
 ) {
+  if (!commitMessage || typeof commitMessage !== "string") {
+    throw new Error("Commit message is required and must be a string");
+  }
+
   console.log(chalk.dim("─".repeat(process.stdout.columns || 80)));
   console.log(chalk.bold.cyan(`${EMOJI.COMMIT} Commit Details`));
   console.log(chalk.greenBright(`Message: ${commitMessage}`));

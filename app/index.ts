@@ -60,6 +60,7 @@ ${chalk.cyan("Documentation:")}
     .option("-m, --message <msg>", "Specific commit message")
     .option("-a, --all", "Stage all changes before committing")
     .option("--no-push", "Skip pushing to remote")
+    .allowExcessArguments(false)
     .addHelpText(
       "after",
       `
@@ -70,6 +71,14 @@ ${chalk.cyan("Examples:")}
     `
     )
     .action(async (options) => {
+      if (!options.message) {
+        console.error(chalk.red("Error: Commit message is required"));
+        console.log(chalk.yellow("\nUse one of the following:"));
+        console.log(chalk.cyan('  gfts commit -m "your commit message"'));
+        console.log(chalk.cyan("  gfts auto-commit"));
+        console.log(chalk.yellow("\nNote: Make sure to wrap multi-word messages in quotes"));
+        process.exit(1);
+      }
       await runManualCommit(options.message, cli.opts().dryRun, !options.push);
     });
 
