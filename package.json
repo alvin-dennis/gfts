@@ -1,0 +1,23 @@
+{
+  "name": "gfts",
+  "module": "./app/index.ts",
+  "type": "module",
+  "bin": {
+    "gfts": "./app/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.4.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@google/genai": "^1.19.0",
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "chalk": "^5.6.2",
+    "commander": "^14.0.1",
+    "inquirer": "^12.9.6",
+    "zod": "^4.1.8"
+  }
+}
