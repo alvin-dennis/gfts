@@ -20,7 +20,6 @@ export async function getApiKey(): Promise<string> {
     console.log(chalk.yellow("No API key found in config file"));
   }
 
-  // If we reach here, we need to set up the API key
   return setupApiKey();
 }
 
@@ -53,3 +52,4 @@ export async function setupApiKey(): Promise<string> {
 
   return answers.apiKey;
 }
+

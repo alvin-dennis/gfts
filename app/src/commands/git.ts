@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { GoogleGenAI } from "@google/genai";
 import { getApiKey } from "../config/api";
 import mcpClient from "../mcp/client";
+import { getToolDefinitions } from "../tools/declarations";
 
 export async function runManualCommit(commitMessage: string, dryRun = false) {
   console.log(chalk.greenBright(`Commit Message:\n${commitMessage}`));
@@ -66,7 +67,10 @@ export async function runAutoCommit(dryRun = false) {
   await runManualCommit(commitMessage, dryRun);
 }
 
-export async function runGenerativeGitFlow(instruction: string, dryRun = false) {
+export async function runGenerativeGitFlow(
+  instruction: string,
+  dryRun = false
+) {
   console.log(chalk.cyanBright(`▶️ User Goal: ${instruction}`));
 
   const apiKey = await getApiKey();
@@ -75,6 +79,9 @@ export async function runGenerativeGitFlow(instruction: string, dryRun = false) 
   const initialPrompt = `You are Git Flash, an AI assistant for git and file system operations.
 Operating in directory: ${process.cwd()}.
 User's goal: ${instruction}`;
+
+  // Get tool definitions for the model
+  const tools = getToolDefinitions();
 
   let response = await genai.models.generateContent({
     model: "gemini-2.0-flash",
@@ -90,24 +97,23 @@ User's goal: ${instruction}`;
     throw new Error("Failed to generate valid content");
   }
 
-  // Initialize MCP client
   await mcpClient.initializeClient(process.cwd());
 
   try {
     while (response?.candidates?.[0]?.content?.parts?.[0]?.functionCall) {
-    const funcCall = response.candidates[0].content.parts[0].functionCall;
-    if (!funcCall?.name) {
-      throw new Error("Invalid function call from model");
-    }
+      const funcCall = response.candidates[0].content.parts[0].functionCall;
+      if (!funcCall?.name) {
+        throw new Error("Invalid function call from model");
+      }
 
-    const toolName = funcCall.name;
-    const toolArgs = { ...funcCall.args, working_directory: process.cwd() };
+      const toolName = funcCall.name;
+      const toolArgs = { ...funcCall.args, working_directory: process.cwd() };
 
-    console.log(
-      chalk.yellowBright(
-        `🤖 Agent wants to run: ${toolName}(${JSON.stringify(toolArgs)})`
-      )
-    );
+      console.log(
+        chalk.yellowBright(
+          `🤖 Agent wants to run: ${toolName}(${JSON.stringify(toolArgs)})`
+        )
+      );
 
       let toolOutput: any;
       if (dryRun) {
@@ -116,29 +122,32 @@ User's goal: ${instruction}`;
       } else {
         try {
           toolOutput = await mcpClient.executeTool(toolName, toolArgs);
-          toolOutput = typeof toolOutput === "object" && toolOutput !== null
-            ? JSON.stringify(toolOutput)
-            : String(toolOutput);
+          toolOutput =
+            typeof toolOutput === "object" && toolOutput !== null
+              ? JSON.stringify(toolOutput)
+              : String(toolOutput);
         } catch (error) {
           console.error(chalk.red("Tool execution error:"), error);
-          toolOutput = `Error: ${error instanceof Error ? error.message : "Unknown error"}`;
+          toolOutput = `Error: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`;
         }
-      }    console.log(chalk.gray(`Result:\n${toolOutput}`));
+      }
+      console.log(chalk.gray(`Result:\n${toolOutput}`));
 
-    response = await genai.models.generateContent({
-      model: "gemini-pro",
-      contents: [
-        {
-          parts: [{ text: initialPrompt }],
-          role: "user",
-        },
-      ],
-    });
-  }
+      response = await genai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            parts: [{ text: initialPrompt }],
+            role: "user",
+          },
+        ],
+      });
+    }
 
     console.log(chalk.greenBright(`✅ Final Response:\n${response.text}`));
   } finally {
-    // Always close the client when done
     await mcpClient.closeClient();
   }
 }

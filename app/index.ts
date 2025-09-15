@@ -2,7 +2,7 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { getApiKey, setupApiKey } from "./src/config/api";
+import { setupApiKey } from "./src/config/api";
 import {
   runGenerativeGitFlow,
   runManualCommit,

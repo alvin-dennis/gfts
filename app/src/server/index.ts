@@ -57,7 +57,11 @@ export class GftsServer {
         });
         return { stdout: stdout.trim(), stderr: "", return_code: 0 };
       } catch (err: any) {
-        return { stdout: "", stderr: err.message, return_code: err.status ?? 1 };
+        return {
+          stdout: "",
+          stderr: err.message,
+          return_code: err.status ?? 1,
+        };
       }
     });
   }
@@ -220,6 +224,72 @@ export class GftsServer {
   getCurrentDirectory(): string {
     return this.workingDirectory;
   }
+}
+
+export async function listDirectory(
+  dirPath: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.listFiles(dirPath);
+}
+
+export async function showDirectoryTree(
+  dirPath: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.listDirectoryTree(dirPath);
+}
+
+export async function readFileContent(
+  filePath: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.readFile(filePath);
+}
+
+export async function writeFileContent(
+  filePath: string,
+  content: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.writeFile(filePath, content);
+}
+
+export async function moveFileTo(
+  source: string,
+  destination: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.moveFile(source, destination);
+}
+
+export async function deleteFilePath(
+  filePath: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.deleteFile(filePath);
+}
+
+export async function createDirectoryPath(
+  dirPath: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.createDirectory(dirPath);
+}
+
+export async function deleteDirectoryPath(
+  dirPath: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.deleteDirectory(dirPath);
 }
 
 export default GftsServer;
