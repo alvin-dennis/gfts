@@ -11,7 +11,7 @@ import {
 
 function createCli() {
   const cli = new Command();
-
+  
   cli
     .name("gfts")
     .description(
@@ -84,7 +84,6 @@ ${chalk.cyan("Examples:")}
       await runManualCommit(options.message, cli.opts().dryRun, !options.push);
     });
 
-
   cli
     .command("auto-commit")
     .alias("ac")
@@ -102,7 +101,6 @@ ${chalk.cyan("Examples:")}
       await runAutoCommit(cli.opts().dryRun, !options.push);
     });
 
-
   cli
     .command("assist [instruction]", { isDefault: true })
     .description("Get AI assistance for git operations")
@@ -117,9 +115,6 @@ ${chalk.cyan("Examples:")}
     )
     .action(async (instruction) => {
       if (!instruction) {
-        console.log(
-          chalk.yellow("Please provide an instruction for the AI assistant")
-        );
         cli.help();
         return;
       }
