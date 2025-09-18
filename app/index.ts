@@ -99,26 +99,28 @@ ${chalk.cyan("Examples:")}
       await runAutoCommit(cli.opts().dryRun, !options.push);
     });
 
-  cli
-    .command("assist [instruction]", { isDefault: true })
-    .description("Get AI assistance for git operations")
-    .addHelpText(
-      "after",
-      `
+    cli
+      .command("assist [instruction]", { isDefault: true })
+      .description("Get AI assistance for git operations")
+      .addHelpText(
+        "after",
+        `
 ${chalk.cyan("Examples:")}
   $ gfts "stage and commit all my recent changes"
   $ gfts "create a new branch and commit my changes"
   $ gfts "push my changes to origin"
     `
-    )
-    .action(async (instruction) => {
-      if (!instruction) {
-        cli.help();
-        return;
-      }
-      await runGenerativeGitFlow(instruction, cli.opts().dryRun);
-    });
+      )
+      .action(async (instruction) => {
+        if (!instruction) {
+          cli.help();
+          return;
+        }
+        
+        const dryRun = cli.opts().dryRun ?? false;
 
+        await runGenerativeGitFlow(instruction, dryRun);
+      });
   return cli;
 }
 

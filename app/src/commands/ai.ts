@@ -1,16 +1,71 @@
 import chalk from "chalk";
 import ora from "ora";
-import mcpClient from "../mcp/client";
+import MCPClient from "../mcp/client";
 import { EMOJI, formatError, printDivider } from "./utils";
+import { GoogleGenAI } from "@google/genai";
+import { getApiKey } from "../config/api";
+
+const apiKey = await getApiKey();
+const genai = new GoogleGenAI({ apiKey });
+
+async function processWithGemini(
+  query: string,
+  dryRun = false
+): Promise<string> {
+  const genSpinner = ora({
+    text: `🔹 Processing instruction with Gemini...`,
+    color: "blue",
+  }).start();
+
+  const instruction = `You are GFTS, an AI assistant for git and file system operations in a Node/Bun project.
+You are operating in the directory: ${process.cwd()}.
+User instruction: ${query}.
+
+Rules:
+- Execute the task directly; no explanations or reasoning.
+- Generate instructions using Node.js/Bun-compatible commands (fs, path, child_process) or git commands.
+- Handle file operations: create, read, write, append, move, delete.
+- Handle directory operations: create, delete, list, tree.
+- For git: create branches, commit, push, stash, or list branches.
+- Respect dry-run mode: ${
+    dryRun
+      ? "simulate changes; do not modify any files or git state."
+      : "apply all changes directly."
+  }`;
+
+  try {
+    const response = await genai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: [
+        {
+          parts: [{ text: instruction }],
+          role: "user",
+        },
+      ],
+    });
+
+    const generatedText = response?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      genSpinner.fail(chalk.red("Failed to generate structured instruction"));
+      throw new Error("Gemini did not return any content");
+    }
+
+    genSpinner.succeed(chalk.green("✅ Gemini processed instruction"));
+    return generatedText.trim();
+  } catch (err) {
+    genSpinner.fail(chalk.red("Gemini processing failed"));
+    throw err;
+  }
+}
 
 export async function runGenerativeGitFlow(
-  toolName: string,
-  toolArgs: Record<string, any> = {},
+  naturalInstruction: string,
   dryRun = false
 ) {
   printDivider();
   console.log(chalk.bold.cyan(`${EMOJI.ROBOT} AI Assistant`));
-  console.log(chalk.greenBright(`Goal: Execute tool '${toolName}'`));
+  console.log(chalk.greenBright(`Goal: Execute instruction`));
   printDivider();
 
   const initSpinner = ora({
@@ -18,47 +73,35 @@ export async function runGenerativeGitFlow(
     color: "blue",
   }).start();
 
+  const mcpClient = new MCPClient();
+
   try {
-    // Initialize MCP client with GftsServer
-    await mcpClient.initializeClient(process.cwd());
+    await mcpClient.connect();
     initSpinner.succeed(chalk.green(`${EMOJI.SUCCESS} MCP Client ready`));
     printDivider();
 
-    const actionSpinner = ora({
-      text: chalk.cyan(`${EMOJI.ROBOT} Executing tool: ${toolName}`),
+    const structuredInstruction = await processWithGemini(
+      naturalInstruction,
+      dryRun
+    );
+
+    const executeSpinner = ora({
+      text: chalk.cyan(`${EMOJI.ROBOT} Executing instruction`),
       color: "blue",
     }).start();
 
-    let toolOutput: any;
-    if (dryRun) {
-      actionSpinner.warn(chalk.magenta("Dry run - skipping execution"));
-      toolOutput = "Dry run mode, command not executed.";
-    } else {
-      try {
-        console.log("Calling executeTool:", toolName, toolArgs);
-        toolOutput = await mcpClient.executeTool(
-          toolName as any,
-          toolArgs
-        );
-        console.log("Finished executeTool");
-        toolOutput = await mcpClient.executeTool(toolName as any, toolArgs);
-        toolOutput =
-          typeof toolOutput === "object" && toolOutput !== null
-            ? JSON.stringify(toolOutput, null, 2)
-            : String(toolOutput);
-        actionSpinner.succeed(chalk.green(`${EMOJI.SUCCESS} Tool executed`));
-      } catch (error) {
-        actionSpinner.fail(chalk.red(`${EMOJI.ERROR} Tool execution failed`));
-        console.error(chalk.red(formatError(error)));
-        toolOutput = `Error: ${formatError(error)}`;
-      }
-    }
+    let toolOutput: any = await mcpClient.callTool(
+      structuredInstruction,
+      dryRun
+    );
 
-    if (toolOutput) {
-      console.log(chalk.dim("Output:"));
-      console.log(chalk.gray(toolOutput));
-      printDivider();
-    }
+    executeSpinner.succeed(
+      chalk.green(`${EMOJI.SUCCESS} Instruction processed`)
+    );
+
+    console.log(chalk.dim("\nOutput:"));
+    console.log(chalk.gray(toolOutput));
+    printDivider();
 
     console.log(chalk.bold.green("🎉 Task completed!"));
   } catch (error) {
@@ -66,6 +109,6 @@ export async function runGenerativeGitFlow(
     console.error(chalk.red(formatError(error)));
     throw error;
   } finally {
-    await mcpClient.closeClient();
+    await mcpClient.cleanup();
   }
 }
