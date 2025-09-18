@@ -15,6 +15,7 @@ export class GftsServer {
     this.workingDirectory = path.resolve(workingDirectory);
   }
 
+  // ---------------------- Helpers ----------------------
   private getSafePath(targetPathStr: string): string {
     const targetPath = path.resolve(this.workingDirectory, targetPathStr);
 
@@ -23,7 +24,6 @@ export class GftsServer {
         `Path access denied: '${targetPathStr}' is outside the project directory.`
       );
     }
-
     return targetPath;
   }
 
@@ -47,6 +47,7 @@ export class GftsServer {
     });
   }
 
+  // ---------------------- Git Commands ----------------------
   async runGitCommand(command: string): Promise<ToolResult> {
     return this.wrapWithTimeout(() => {
       try {
@@ -66,6 +67,7 @@ export class GftsServer {
     });
   }
 
+  // ---------------------- File System ----------------------
   async listFiles(dirPath: string): Promise<string> {
     return this.wrapWithTimeout(() => {
       try {
@@ -106,6 +108,19 @@ export class GftsServer {
         return `Successfully wrote to '${filePath}'.`;
       } catch (err: any) {
         return `Error writing to file '${filePath}': ${err.message}`;
+      }
+    });
+  }
+
+  async appendFile(filePath: string, content: string): Promise<string> {
+    return this.wrapWithTimeout(() => {
+      try {
+        const safePath = this.getSafePath(filePath);
+        fs.mkdirSync(path.dirname(safePath), { recursive: true });
+        fs.appendFileSync(safePath, content, "utf-8");
+        return `Successfully appended to '${filePath}'.`;
+      } catch (err: any) {
+        return `Error appending to file '${filePath}': ${err.message}`;
       }
     });
   }
@@ -226,6 +241,7 @@ export class GftsServer {
   }
 }
 
+// ---------------------- Convenience Functions ----------------------
 export async function listDirectory(
   dirPath: string,
   workingDir: string = process.cwd()
@@ -257,6 +273,15 @@ export async function writeFileContent(
 ) {
   const server = new GftsServer(workingDir);
   return server.writeFile(filePath, content);
+}
+
+export async function appendFileContent(
+  filePath: string,
+  content: string,
+  workingDir: string = process.cwd()
+) {
+  const server = new GftsServer(workingDir);
+  return server.appendFile(filePath, content);
 }
 
 export async function moveFileTo(
